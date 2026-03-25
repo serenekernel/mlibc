@@ -20,7 +20,16 @@ struct SereneSysdepTags : Exit,
                           VmMap,
                           VmUnmap,
                           TcbSet,
-                          Isatty {};
+                          Isatty,
+                          GetTid,
+                          GetGid,
+                          GetEgid,
+                          GetUid,
+                          GetEuid,
+                          GetPid,
+                          GetPpid,
+                          Stat,
+                          Dup2 {};
 
 template <typename Tag> using Sysdeps = SysdepOf<SereneSysdepTags, Tag>;
 

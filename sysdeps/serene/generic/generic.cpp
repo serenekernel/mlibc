@@ -99,6 +99,19 @@ int Sysdeps<AnonFree>::operator()(void *pointer, size_t size) {
   bool err = syscall(SYS_MEM_ANON_FREE, &ret, (uintptr_t)pointer);
   return err ? -1 : 0;
 }
+int Sysdeps<Stat>::operator()(fsfd_target fsfdt, int fd, const char *path,
+                              int flags, struct stat *statbuf) {
+  STUB();
+}
 int Sysdeps<Isatty>::operator()(int fd) { return 0; }
+pid_t Sysdeps<GetTid>::operator()() { STUB(); }
+gid_t Sysdeps<GetGid>::operator()() { return 0; }
+gid_t Sysdeps<GetEgid>::operator()() { return 0; }
+uid_t Sysdeps<GetUid>::operator()() { return 0; }
+uid_t Sysdeps<GetEuid>::operator()() { return 0; }
+
+pid_t Sysdeps<GetPid>::operator()() { STUB(); }
+pid_t Sysdeps<GetPpid>::operator()() { STUB(); }
+int Sysdeps<Dup2>::operator()(int fd, int flags, int newfd) { STUB(); }
 
 } // namespace mlibc

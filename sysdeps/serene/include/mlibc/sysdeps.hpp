@@ -29,7 +29,8 @@ struct SereneSysdepTags : Exit,
                           GetPid,
                           GetPpid,
                           Stat,
-                          Dup2 {};
+                          Dup2,
+                          VmProtect {};
 
 template <typename Tag> using Sysdeps = SysdepOf<SereneSysdepTags, Tag>;
 

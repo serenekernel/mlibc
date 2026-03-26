@@ -5,11 +5,19 @@
 #include <stdint.h>
 
 #define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_DEBUG_LOG 2
-#define SYSCALL_TCB_SET 3
-#define SYS_MEM_ANON_ALLOC 4
-#define SYS_MEM_ANON_FREE 5
+
+#define SYSCALL_OPEN 1
+#define SYSCALL_READ 2
+#define SYSCALL_WRITE 3
+#define SYSCALL_CLOSE 4
+#define SYSCALL_SEEK 5
+
+#define SYSCALL_DEBUG_LOG 6
+#define SYSCALL_TCB_SET 7
+
+#define SYSCALL_VM_MAP 8
+#define SYSCALL_VM_UNMAP 9
+#define SYSCALL_VM_PROTECT 10
 
 #ifndef __MLIBC_ABI_ONLY
 

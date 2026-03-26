@@ -42,8 +42,8 @@ mlibc::RtldConfig rtldConfig = {
 	// disables LD_LIBRARY_PATH and LD_PRELOAD
 	.secureRequired = false,
 	// set to enable rtld logging, also can be enabled by environment variables:
-	.debug = false, // MLIBC_RTLD_DEBUG=1
-	.debugVerbose = false // MLIBC_RTLD_DEBUG_VERBOSE=1
+	.debug = true, // MLIBC_RTLD_DEBUG=1
+	.debugVerbose = true // MLIBC_RTLD_DEBUG_VERBOSE=1
 };
 
 uintptr_t *entryStack;

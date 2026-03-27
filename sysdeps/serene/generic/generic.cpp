@@ -18,6 +18,12 @@
     __builtin_unreachable();                                                   \
   })
 
+#define STUB_WARN()                                                            \
+  ({                                                                           \
+    __ensure_warn("STUB function was called", __FILE__, __LINE__,              \
+                  __PRETTY_FUNCTION__);                                        \
+  })
+
 namespace mlibc {
 // Misc
 [[noreturn]] void Sysdeps<Exit>::operator()(int status) {
@@ -99,6 +105,69 @@ int Sysdeps<Seek>::operator()(int fd, off_t offset, int whence,
   return 0;
 }
 
+// @todo: move this somewhere???
+typedef struct {
+  int64_t st_size;
+  uint64_t st_nlink;
+  uint32_t st_mode;
+} serene_stat_t;
+
+int Sysdeps<Stat>::operator()(fsfd_target fsfdt, int fd, const char *path,
+                              int flags, struct stat *statbuf) {
+  serene_stat_t serene_stat;
+  long ret;
+  bool err;
+  switch (fsfdt) {
+  case fsfd_target::path:
+    err = syscall(SYSCALL_STATAT, &ret, AT_FDCWD, (uint64_t)path, strlen(path),
+                  (uint64_t)&serene_stat, flags);
+    break;
+  case fsfd_target::fd:
+    err = syscall(SYSCALL_STAT, &ret, fd, (uint64_t)&serene_stat);
+    break;
+  case fsfd_target::fd_path:
+    err = syscall(SYSCALL_STATAT, &ret, fd, (uint64_t)path, strlen(path),
+                  (uint64_t)&serene_stat, flags);
+    break;
+  default:
+    mlibc::infoLogger() << "mlibc: stat: Unknown fsfd_target: " << (int)fsfdt
+                        << frg::endlog;
+    return ENOSYS;
+  }
+
+  if (err) {
+    return -ret;
+  }
+  memset(statbuf, 0, sizeof(struct stat));
+  statbuf->st_size = serene_stat.st_size;
+  statbuf->st_nlink = serene_stat.st_nlink;
+  statbuf->st_mode = serene_stat.st_mode;
+
+  return 0;
+}
+int Sysdeps<Isatty>::operator()(int fd) {
+  long ret;
+  bool err = syscall(SYSCALL_ISATTY, &ret, fd);
+  // mlibc expects enotty not -enotty for some reason
+  if (err && ret == ENOTTY) {
+    return ENOTTY;
+  }
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+
+int Sysdeps<GetCwd>::operator()(char *buf, size_t size) {
+
+  mlibc::infoLogger() << "mlibc: getcwd: CALLED" << frg::endlog;
+  long ret;
+  bool err = syscall(SYSCALL_GETCWD, &ret, (uint64_t)buf, size);
+  if (err) {
+    return -ret;
+  }
+  return 0;
+}
 // Memory
 int Sysdeps<VmMap>::operator()(void *hint, size_t size, int prot, int flags,
                                int fd, off_t offset, void **window) {
@@ -140,6 +209,78 @@ int Sysdeps<AnonFree>::operator()(void *pointer, size_t size) {
   return sysdep<VmUnmap>(pointer, size);
 }
 
+// Process info
+pid_t Sysdeps<GetPid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_PID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+
+gid_t Sysdeps<GetGid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_GID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+gid_t Sysdeps<GetEgid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_EGID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+uid_t Sysdeps<GetUid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_UID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+uid_t Sysdeps<GetEuid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_EUID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+
+pid_t Sysdeps<GetPpid>::operator()() {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_PPID);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+
+int Sysdeps<GetPgid>::operator()(pid_t pid, pid_t *pgid) {
+  long ret;
+  bool err =
+      syscall(SYSCALL_GET_PROC_INFO, &ret, SYSCALL_GET_PROC_INFO_GET_PGID, pid);
+  if (err) {
+    return -ret;
+  }
+  *pgid = ret;
+  return 0;
+}
+int Sysdeps<SetPgid>::operator()(pid_t pid, pid_t pgid) {
+  long ret;
+  bool err = syscall(SYSCALL_GET_PROC_INFO, &ret,
+                     SYSCALL_GET_PROC_INFO_SET_PGID, pid, pgid);
+  if (err) {
+    return -ret;
+  }
+  return ret;
+}
+
 // Stubs
 int Sysdeps<FutexWait>::operator()(int *pointer, int expected,
                                    const struct timespec *time) {
@@ -147,22 +288,16 @@ int Sysdeps<FutexWait>::operator()(int *pointer, int expected,
 }
 
 int Sysdeps<FutexWake>::operator()(int *pointer, bool all) { STUB(); }
-int Sysdeps<Stat>::operator()(fsfd_target fsfdt, int fd, const char *path,
-                              int flags, struct stat *statbuf) {
-  STUB();
-}
-int Sysdeps<Isatty>::operator()(int fd) { return 0; }
-pid_t Sysdeps<GetTid>::operator()() { STUB(); }
-gid_t Sysdeps<GetGid>::operator()() { return 0; }
-gid_t Sysdeps<GetEgid>::operator()() { return 0; }
-uid_t Sysdeps<GetUid>::operator()() { return 0; }
-uid_t Sysdeps<GetEuid>::operator()() { return 0; }
 
-pid_t Sysdeps<GetPid>::operator()() { STUB(); }
-pid_t Sysdeps<GetPpid>::operator()() { STUB(); }
+pid_t Sysdeps<GetTid>::operator()() { STUB(); }
+
 int Sysdeps<Dup2>::operator()(int fd, int flags, int newfd) { STUB(); }
 
 int Sysdeps<ClockGet>::operator()(int clock, time_t *secs, long *nanos) {
-  STUB();
+
+  STUB_WARN();
+  *secs = 0;
+  *nanos = 0;
+  return 0;
 }
 } // namespace mlibc

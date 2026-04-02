@@ -33,6 +33,9 @@
 #define SYSCALL_GET_PROC_INFO_GET_PGID 6
 #define SYSCALL_GET_PROC_INFO_SET_PGID 7
 
+#define SYSCALL_IOCTL 41
+#define SYSCALL_FCNTL 42
+
 #ifndef __MLIBC_ABI_ONLY
 
 static long syscall(long func, long *ret, uint64_t p1 = 0, uint64_t p2 = 0,
